@@ -1,0 +1,16 @@
+{
+  "name": "easyeda-scraper",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Scrapper for porting LCSC part to KiCad",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/zhangyx1998/easyeda-scraper.git"
+  },
+  "author": "Yuxuan Zhang, Haoyuan Xu",
+  "license": "MIT"
+}
