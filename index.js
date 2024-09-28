@@ -9,8 +9,6 @@ import { resolve } from "node:path";
 // Search example
 const res = await product("LM324");
 
-await writeFile("temp.json", JSON.stringify({ res }, null, 4));
-
 const devices = Object.assign(
   ...(await Promise.all(
     res
