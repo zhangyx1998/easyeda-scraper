@@ -50,7 +50,7 @@ await Promise.all(
     if (sym?.dataStr && ftp?.dataStr) {
       const symPath = `var/SYMBOL/${sym.uuid}.esym`;
       await writeFile(symPath, sym.dataStr);
-      const fpPath = `var/FOOTPRINT/${ftp.uuid}.esym`;
+      const fpPath = `var/FOOTPRINT/${ftp.uuid}.efoo`;
       await writeFile(fpPath, ftp.dataStr);
     }
   })
