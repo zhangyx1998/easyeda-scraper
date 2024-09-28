@@ -25,3 +25,10 @@ export async function device(uuid) {
   const { uuid: _, ...device } = result;
   return { [uuid]: device };
 }
+
+// Extract necessary symbol/footprint information from return of product()
+export function extract(obj) {
+  const { dataStr, modifier, owner, uuid, ...cleaned } = obj;
+  return { [uuid]: cleaned };
+}
+

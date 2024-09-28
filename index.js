@@ -1,10 +1,15 @@
-import { product, device } from "./search.js";
+import { product, device, extract} from "./search.js";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { spawn } from "node:child_process";
+import { rename } from "fs/promises";
+import { join } from "path";
+import { resolve } from "node:path";
 
 // Search example
 const res = await product("LM324");
+
+await writeFile("temp.json", JSON.stringify({ res }, null, 4));
 
 const devices = Object.assign(
   ...(await Promise.all(
@@ -15,10 +20,28 @@ const devices = Object.assign(
   ))
 );
 
+const symbols = Object.assign(
+  ...(
+    res
+      .map((r) => r?.device_info?.symbol_info)
+      .filter(Boolean)
+      .map((symbol_info) => extract(symbol_info))
+  )
+);
+
+const footprints = Object.assign(
+  ...(
+    res
+      .map((r) => r?.device_info?.footprint_info)
+      .filter(Boolean)
+      .map((footprint_info) => extract(footprint_info))
+  )
+);
+
 await mkdir("var", { recursive: true }).catch(() => {});
 await mkdir("var/FOOTPRINT", { recursive: true }).catch(() => {});
 await mkdir("var/SYMBOL", { recursive: true }).catch(() => {});
-await writeFile("var/device.json", JSON.stringify({ devices }, null, 2));
+await writeFile("var/device.json", JSON.stringify({ devices, symbols, footprints}, null, 2));
 
 // dump the symbol and footprint data
 await Promise.all(
@@ -35,8 +58,27 @@ await Promise.all(
   })
 );
 
-const directories = await (
+const directories = (
   await readdir("var", { withFileTypes: true })
 ).map((dirent) => dirent.name);
 
-spawn("zip", ["-r", "LCSC.elibz", ...directories], { cwd: "var" });
+await new Promise((resolve, reject) => {
+  const zip = spawn("zip", ["-r", "LCSC.elibz", ...directories], { cwd: "var" });
+  zip.on("exit", (code) => {
+    if (code === 0) {
+      resolve();
+    } else {
+      reject(new Error("Failed to zip the files"));
+    }
+  }); 
+});
+
+
+const cwd = process.cwd();
+await rename(join(cwd, "var/LCSC.elibz"), join(cwd, "LCSC.elibz"), (err) => {
+  if (err) {
+      console.error("Error moving the file:", err);
+  } else {
+      console.log("File has been moved successfully.");
+  }
+});
