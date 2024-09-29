@@ -12,5 +12,8 @@
     "url": "github.com/zhangyx1998/easyeda-scraper.git"
   },
   "author": "Yuxuan Zhang, Haoyuan Xu",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "archiver": "^7.0.1"
+  }
 }

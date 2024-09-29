@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import { rename } from "fs/promises";
 import { join } from "path";
 import { resolve } from "node:path";
+import { zipDirectories } from "./zip.js";
 
 // Search example
 const res = await product("LM324");
@@ -56,27 +57,33 @@ await Promise.all(
   })
 );
 
+const cwd = process.cwd();
+
 const directories = (
   await readdir("var", { withFileTypes: true })
-).map((dirent) => dirent.name);
+).map((dirent) => "var/" + dirent.name);
 
-await new Promise((resolve, reject) => {
-  const zip = spawn("zip", ["-r", "LCSC.elibz", ...directories], { cwd: "var" });
-  zip.on("exit", (code) => {
-    if (code === 0) {
-      resolve();
-    } else {
-      reject(new Error("Failed to zip the files"));
-    }
-  }); 
-});
+const outputZipPath = join(cwd, "LCSC.elibz");
 
+zipDirectories(directories, outputZipPath)
+  .then(() => console.log('Zipping completed successfully.'))
+  .catch((error) => console.error(`Error while zipping: ${error.message}`));
 
-const cwd = process.cwd();
-await rename(join(cwd, "var/LCSC.elibz"), join(cwd, "LCSC.elibz"), (err) => {
-  if (err) {
-      console.error("Error moving the file:", err);
-  } else {
-      console.log("File has been moved successfully.");
-  }
-});
+// await new Promise((resolve, reject) => {
+//   const zip = spawn("zip", ["-r", "LCSC.elibz", ...directories], { cwd: "var" });
+//   zip.on("exit", (code) => {
+//     if (code === 0) {
+//       resolve();
+//     } else {
+//       reject(new Error("Failed to zip the files"));
+//     }
+//   }); 
+// });
+
+// await rename(join(cwd, "var/LCSC.elibz"), join(cwd, "LCSC.elibz"), (err) => {
+//   if (err) {
+//       console.error("Error moving the file:", err);
+//   } else {
+//       console.log("File has been moved successfully.");
+//   }
+// });
