@@ -2,3 +2,5 @@ node_modules
 var
 .vscode
 *.elibz
+result.json
+list.json

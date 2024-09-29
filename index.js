@@ -1,4 +1,4 @@
-import { product, device, extract} from "./search.js";
+import { product, device, extract, search} from "./search.js";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { spawn } from "node:child_process";
@@ -7,8 +7,16 @@ import { join } from "path";
 import { resolve } from "node:path";
 import { zipDirectories } from "./zip.js";
 
+const productList = (await search("TPS25750"))
+
+await writeFile("list.json", JSON.stringify(productList, null, 4));
+
 // Search example
-const res = await product("LM324");
+const res = (await product("TPS25750"))
+            .filter(r => r?.stock > 0)
+            .slice(0, 100);
+
+await writeFile("result.json", JSON.stringify(res, null, 4));
 
 const devices = Object.assign(
   ...(await Promise.all(
@@ -40,7 +48,7 @@ const footprints = Object.assign(
 await mkdir("var", { recursive: true }).catch(() => {});
 await mkdir("var/FOOTPRINT", { recursive: true }).catch(() => {});
 await mkdir("var/SYMBOL", { recursive: true }).catch(() => {});
-await writeFile("var/device.json", JSON.stringify({ devices, symbols, footprints}, null, 2));
+await writeFile("var/device.json", JSON.stringify({ devices, symbols, footprints}, null, 4));
 
 // dump the symbol and footprint data
 await Promise.all(
