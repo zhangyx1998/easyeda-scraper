@@ -1,22 +1,35 @@
-import { product, device, extract, search} from "./search.js";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
-import { promisify } from "node:util";
-import { spawn } from "node:child_process";
-import { rename } from "fs/promises";
-import { join } from "path";
-import { resolve } from "node:path";
-import { zipDirectories } from "./zip.js";
+import { product, device, extract, search } from "./search.js";
+import { mkdir, readdir, writeFile, rename } from "fs/promises";
+import { createWriteStream, existsSync} from "fs";
+import { promisify } from "util";
+import { spawn } from "child_process";
+import { join, resolve } from "path";
+import archiver from 'archiver';
+import AdmZip from 'adm-zip';
 
-const productList = (await search("TPS25750"))
+await mkdir("var", { recursive: true }).catch(() => { });
+const zipPath = "var/LCSC.elibz";
 
-await writeFile("list.json", JSON.stringify(productList, null, 4));
+let zip;
+if (existsSync(zipPath)) {
+  zip = new AdmZip(zipPath);
+} else {
+  zip = new AdmZip();
+}
+
+// TODO: UNDER TEST
+const productList = (await search("LM324"))
+  .slice(0, 100)
+  .filter(r => r?.stockNumber > 0);
+
+// await writeFile("list.json", JSON.stringify(productList, null, 4));
 
 // Search example
-const res = (await product("TPS25750"))
-            .filter(r => r?.stock > 0)
-            .slice(0, 100);
+const res = (await product("LM324"))
+  .filter(r => r?.stock > 0)
+  .slice(0, 10);
 
-await writeFile("result.json", JSON.stringify(res, null, 4));
+// await writeFile("result.json", JSON.stringify(res, null, 4));
 
 const devices = Object.assign(
   ...(await Promise.all(
@@ -45,10 +58,21 @@ const footprints = Object.assign(
   )
 );
 
-await mkdir("var", { recursive: true }).catch(() => {});
-await mkdir("var/FOOTPRINT", { recursive: true }).catch(() => {});
-await mkdir("var/SYMBOL", { recursive: true }).catch(() => {});
-await writeFile("var/device.json", JSON.stringify({ devices, symbols, footprints}, null, 4));
+const deviceJsonEntry = zip.getEntry("device.json");
+let oldData = { devices: {}, symbols: {}, footprints: {} };
+
+if (deviceJsonEntry) {
+  const content = deviceJsonEntry.getData().toString('utf8');
+  oldData = JSON.parse(content);
+}
+
+oldData.devices = { ...oldData.devices, ...devices };
+oldData.symbols = { ...oldData.symbols, ...symbols };
+oldData.footprints = { ...oldData.footprints, ...footprints };
+
+zip.addFile("device.json", Buffer.from(JSON.stringify(oldData, null, 4)));
+
+
 
 // dump the symbol and footprint data
 await Promise.all(
@@ -57,41 +81,13 @@ await Promise.all(
     const ftp = r.device_info?.footprint_info;
 
     if (sym?.dataStr && ftp?.dataStr) {
-      const symPath = `var/SYMBOL/${sym.uuid}.esym`;
-      await writeFile(symPath, sym.dataStr);
-      const fpPath = `var/FOOTPRINT/${ftp.uuid}.efoo`;
-      await writeFile(fpPath, ftp.dataStr);
+      const symPath = `SYMBOL/${sym.uuid}.esym`;
+      zip.addFile(symPath, Buffer.from(sym.dataStr));
+      const fpPath = `FOOTPRINT/${ftp.uuid}.efoo`;
+      zip.addFile(fpPath, Buffer.from(ftp.dataStr));
     }
   })
 );
 
-const cwd = process.cwd();
-
-const directories = (
-  await readdir("var", { withFileTypes: true })
-).map((dirent) => "var/" + dirent.name);
-
-const outputZipPath = join(cwd, "LCSC.elibz");
-
-zipDirectories(directories, outputZipPath)
-  .then(() => console.log('Zipping completed successfully.'))
-  .catch((error) => console.error(`Error while zipping: ${error.message}`));
-
-// await new Promise((resolve, reject) => {
-//   const zip = spawn("zip", ["-r", "LCSC.elibz", ...directories], { cwd: "var" });
-//   zip.on("exit", (code) => {
-//     if (code === 0) {
-//       resolve();
-//     } else {
-//       reject(new Error("Failed to zip the files"));
-//     }
-//   }); 
-// });
-
-// await rename(join(cwd, "var/LCSC.elibz"), join(cwd, "LCSC.elibz"), (err) => {
-//   if (err) {
-//       console.error("Error moving the file:", err);
-//   } else {
-//       console.log("File has been moved successfully.");
-//   }
-// });
+// await archive.finalize();
+zip.writeZip(zipPath);

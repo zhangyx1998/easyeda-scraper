@@ -25,8 +25,6 @@ export async function search(keyword) {
 
   const query = new URLSearchParams(params).toString();
 
-  console.log(LCSC(query));
-
   const res = await fetch(LCSC(query), {
     method: "GET",
     headers: {
