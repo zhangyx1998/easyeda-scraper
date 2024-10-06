@@ -25,11 +25,11 @@ const productList = (await search("LM324"))
 // await writeFile("list.json", JSON.stringify(productList, null, 4));
 
 // Search example
-const res = (await product("LM324"))
+const res = (await product("CL21A226MAQNNNE"))
   .filter(r => r?.stock > 0)
-  .slice(0, 10);
+  .slice(0, 1);
 
-// await writeFile("result.json", JSON.stringify(res, null, 4));
+await writeFile("result.json", JSON.stringify(res, null, 4));
 
 const devices = Object.assign(
   ...(await Promise.all(
