@@ -1,10 +1,15 @@
-// Global variables
+// Global variables for Electron modules
 let electron;
 let ipcRenderer;
 
+// Set to store UUIDs of selected parts
 let selectedParts = new Set();
 
-// Function to update status with class
+/**
+ * Updates the status message with appropriate styling
+ * @param {string} message - The message to display
+ * @param {string} type - The type of message ('success', 'error', or 'info')
+ */
 function showStatus(message, type) {
     const status = document.getElementById('status');
     if (status) {
@@ -13,19 +18,32 @@ function showStatus(message, type) {
     }
 }
 
+/**
+ * Updates the delete button state based on selected parts
+ */
 function updateDeleteButton() {
     const deleteButton = document.getElementById('deleteButton');
     deleteButton.disabled = selectedParts.size === 0;
 }
 
+/**
+ * Shows the delete confirmation modal
+ */
 function showDeleteModal() {
     document.getElementById('deleteModal').style.display = 'block';
 }
 
+/**
+ * Hides the delete confirmation modal
+ */
 function closeDeleteModal() {
     document.getElementById('deleteModal').style.display = 'none';
 }
 
+/**
+ * Handles the deletion of selected parts
+ * Sends delete request to main process and updates UI
+ */
 async function confirmDelete() {
     try {
         const response = await ipcRenderer.invoke('delete-parts', Array.from(selectedParts));
@@ -44,6 +62,10 @@ async function confirmDelete() {
     }
 }
 
+/**
+ * Displays the list of parts in the UI
+ * @param {boolean} forceRefresh - Whether to force a refresh from the main process
+ */
 async function displayPartsList(forceRefresh = false) {
     try {
         const response = await ipcRenderer.invoke('get-parts-list', forceRefresh);
@@ -105,24 +127,11 @@ async function displayPartsList(forceRefresh = false) {
     }
 }
 
-// Initialize Electron modules
-try {
-    electron = require('electron');
-    ipcRenderer = electron.ipcRenderer;
-    showStatus('Application ready', 'info');
-    
-    // Load parts list on startup
-    displayPartsList();
-} catch (error) {
-    console.error('Failed to load Electron modules:', error);
-    showStatus('Error loading Electron modules: ' + error.message, 'error');
-}
-
-// Function to handle search
-function handleSearch() {
-    // Get part number
-    const partNumber = document.getElementById('partNumber').value.trim();
-    
+/**
+ * Handles the search functionality
+ * @param {string} partNumber - The part number to search for
+ */
+async function handleSearch(partNumber) {
     if (!partNumber) {
         showStatus('Please enter a part number', 'error');
         return;
@@ -133,34 +142,24 @@ function handleSearch() {
         return;
     }
     
-    // Disable buttons during search
-    const buttons = document.querySelectorAll('button');
-    buttons.forEach(button => button.disabled = true);
-    
-    showStatus('Searching...', 'info');
-    
-    // Call search function
-    ipcRenderer.invoke('search-part', partNumber)
-        .then(result => {
-            showStatus(`Successfully processed part ${partNumber}`, 'success');
-            
-            // Show the updated parts list
-            displayPartsList(true);
-        })
-        .catch(error => {
-            console.error('Search error:', error);
-            showStatus(`Error: ${error.message}`, 'error');
-            
-            // Re-enable buttons
-            buttons.forEach(button => button.disabled = false);
-        });
+    try {
+        showStatus('Searching...', 'info');
+        await ipcRenderer.invoke('search-part', partNumber);
+        showStatus(`Successfully processed part ${partNumber}`, 'success');
+        await displayPartsList(true);
+    } catch (error) {
+        console.error('Search error:', error);
+        showStatus(`Error: ${error.message}`, 'error');
+    }
 }
 
-// Function for debug button
+/**
+ * Handles the debug button functionality
+ * Tests DOM elements and Electron availability
+ */
 function handleDebug() {
     showStatus('Debug button clicked at ' + new Date().toLocaleTimeString(), 'info');
     
-    // Test if we can access the DOM
     try {
         const elements = {
             searchButton: !!document.getElementById('searchButton'),
@@ -171,13 +170,11 @@ function handleDebug() {
             result: !!document.getElementById('result')
         };
         
-        // Test if we can access Electron
         const electronAvailable = !!electron;
         const ipcAvailable = !!ipcRenderer;
         
         alert(`Debug info:\nDOM elements: ${JSON.stringify(elements)}\nElectron available: ${electronAvailable}\nIPC available: ${ipcAvailable}`);
         
-        // Refresh the parts list
         if (ipcAvailable) {
             displayPartsList(true);
         }
@@ -187,89 +184,38 @@ function handleDebug() {
     }
 }
 
-// Function to handle refresh button
-function handleRefresh() {
-    displayPartsList(true);
-}
-
-// Function to set up event listeners
-function setupEventListeners() {
-    const searchButton = document.getElementById('searchButton');
-    const debugButton = document.getElementById('debugButton');
-    const refreshButton = document.getElementById('refreshButton');
+// Initialize Electron modules and set up event listeners
+try {
+    electron = require('electron');
+    ipcRenderer = electron.ipcRenderer;
     
-    if (!searchButton || !debugButton || !refreshButton) {
-        showStatus('Error: UI elements not found', 'error');
-        return;
-    }
-    
-    // Set up click handlers
-    searchButton.onclick = handleSearch;
-    debugButton.onclick = handleDebug;
-    refreshButton.onclick = handleRefresh;
-    
-    // Also handle Enter key in the input field
-    document.getElementById('partNumber').addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            handleSearch();
+    // Set up event listeners
+    document.getElementById('partNumber').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSearch(e.target.value.trim());
         }
     });
-    
-    showStatus('Ready', 'info');
-}
 
-// Wait for DOM to be fully loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupEventListeners);
-} else {
-    setupEventListeners();
-}
+    document.getElementById('searchButton').addEventListener('click', () => {
+        handleSearch(document.getElementById('partNumber').value.trim());
+    });
 
-// Event Listeners
-document.getElementById('partNumber').addEventListener('keypress', async (e) => {
-    if (e.key === 'Enter') {
-        const partNumber = e.target.value.trim();
-        if (partNumber) {
-            try {
-                const status = document.getElementById('status');
-                status.textContent = 'Processing...';
-                await ipcRenderer.invoke('search-part', partNumber);
-                status.textContent = 'Done!';
-                await displayPartsList(true);
-            } catch (error) {
-                console.error('Error processing part:', error);
-                document.getElementById('status').textContent = `Error: ${error.message}`;
-            }
+    document.getElementById('refreshButton').addEventListener('click', () => {
+        displayPartsList(true);
+    });
+
+    document.getElementById('deleteButton').addEventListener('click', () => {
+        if (selectedParts.size > 0) {
+            showDeleteModal();
         }
-    }
-});
+    });
 
-document.getElementById('searchButton').addEventListener('click', async () => {
-    const partNumber = document.getElementById('partNumber').value.trim();
-    if (partNumber) {
-        try {
-            const status = document.getElementById('status');
-            status.textContent = 'Processing...';
-            await ipcRenderer.invoke('search-part', partNumber);
-            status.textContent = 'Done!';
-            await displayPartsList(true);
-        } catch (error) {
-            console.error('Error processing part:', error);
-            document.getElementById('status').textContent = `Error: ${error.message}`;
-        }
-    }
-});
+    document.getElementById('debugButton').addEventListener('click', handleDebug);
 
-document.getElementById('refreshButton').addEventListener('click', () => {
-    displayPartsList(true);
-});
-
-document.getElementById('deleteButton').addEventListener('click', () => {
-    if (selectedParts.size > 0) {
-        showDeleteModal();
-    }
-});
-
-document.getElementById('debugButton').addEventListener('click', () => {
-    displayPartsList(true);
-}); 
+    // Initialize the application
+    showStatus('Application ready', 'info');
+    displayPartsList();
+} catch (error) {
+    console.error('Failed to load Electron modules:', error);
+    showStatus('Error loading Electron modules: ' + error.message, 'error');
+} 

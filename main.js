@@ -8,7 +8,7 @@ const AdmZip = require('adm-zip')
 let searchModule;
 console.log('Starting application...');
 
-// Cache for parts list
+// Cache for parts list and last modified time
 let cachedPartsList = null;
 let lastModified = null;
 
@@ -25,11 +25,16 @@ import('./index.mjs')
     console.error('Failed to load search module:', error);
   });
 
+/**
+ * Creates the main application window
+ */
 function createWindow () {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1300,
     height: 800,
+    minWidth: 700,
+    minHeight: 750,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -44,7 +49,10 @@ function createWindow () {
   mainWindow.webContents.openDevTools()
 }
 
-// Function to extract LCSC.elibz if needed
+/**
+ * Extracts the LCSC.elibz file if needed
+ * @returns {Promise<Object>} Result of the extraction
+ */
 async function extractLCSCElibz() {
   const varDir = path.join(__dirname, 'var');
   const elibzPath = path.join(varDir, 'LCSC.elibz');
@@ -95,7 +103,11 @@ async function extractLCSCElibz() {
   }
 }
 
-// Function to read and parse the LCSC.elibz file
+/**
+ * Reads and parses the LCSC.elibz file
+ * @param {boolean} forceRefresh - Whether to force a refresh from disk
+ * @returns {Promise<Object>} Parts list or error
+ */
 async function readPartsFromElibz(forceRefresh = false) {
   const varDir = path.join(__dirname, 'var');
   const elibzPath = path.join(varDir, 'LCSC.elibz');
@@ -155,6 +167,11 @@ async function readPartsFromElibz(forceRefresh = false) {
   }
 }
 
+/**
+ * Deletes specified parts from the LCSC.elibz file
+ * @param {string[]} uuids - Array of part UUIDs to delete
+ * @returns {Promise<Object>} Result of the deletion
+ */
 async function deletePartsFromElibz(uuids) {
   const varDir = path.join(__dirname, 'var');
   const elibzPath = path.join(varDir, 'LCSC.elibz');
