@@ -73,6 +73,57 @@
             align-items: center;
             margin-top: 20px;
             font-weight: bold;
+            justify-content: space-between;
+        }
+        .parts-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #deleteButton {
+            background-color: #dc3545;
+        }
+        #deleteButton:hover {
+            background-color: #c82333;
+        }
+        .part-checkbox {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: relative;
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 4px;
+            width: 80%;
+            max-width: 500px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            padding: 6px 12px;
+        }
+        .modal-buttons .cancel {
+            background-color: #6c757d;
+        }
+        .modal-buttons .confirm {
+            background-color: #dc3545;
         }
         #debugButton {
             background-color: #ff9800;
@@ -119,10 +170,25 @@
     <div id="status" class="info">Initializing...</div>
     
     <div class="parts-header">
-        Parts in LCSC.elibz:
-        <button id="refreshButton">Refresh</button>
+        <div class="parts-header-left">
+            Parts in LCSC.elibz:
+            <button id="refreshButton">Refresh</button>
+        </div>
+        <button id="deleteButton" disabled>Delete Selected</button>
     </div>
     <pre id="result"></pre>
+
+    <!-- Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <h2>Confirm Deletion</h2>
+            <p>Are you sure you want to delete the selected parts? This action cannot be undone.</p>
+            <div class="modal-buttons">
+                <button class="cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="confirm" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
 
     <script src="renderer.js"></script>
   </body>

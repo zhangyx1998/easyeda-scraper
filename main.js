@@ -10,6 +10,7 @@ console.log('Starting application...');
 
 // Cache for parts list
 let cachedPartsList = null;
+let lastModified = null;
 
 // Import the search module
 import('./index.mjs')
@@ -95,72 +96,127 @@ async function extractLCSCElibz() {
 }
 
 // Function to read and parse the LCSC.elibz file
-async function readPartsFromElibz() {
+async function readPartsFromElibz(forceRefresh = false) {
+  const varDir = path.join(__dirname, 'var');
+  const elibzPath = path.join(varDir, 'LCSC.elibz');
+  const extractDir = path.join(varDir, 'LCSC');
+
   try {
-    const varDir = path.join(__dirname, 'var');
-    const extractPath = path.join(varDir, 'LCSC');
-    
-    // Extract or update the files if needed
-    const extractResult = await extractLCSCElibz();
-    if (!extractResult.success) {
-      return extractResult;
+    // Check if LCSC.elibz exists
+    if (!fs.existsSync(elibzPath)) {
+      return { error: 'LCSC.elibz not found' };
     }
-    
-    // Read device.json from the extracted directory
-    const deviceFilePath = path.join(extractPath, 'device.json');
-    if (!fs.existsSync(deviceFilePath)) {
-      return { success: false, message: 'device.json file does not exist' };
-    }
-    
-    console.log('Reading device.json from:', deviceFilePath);
-    const deviceContent = fs.readFileSync(deviceFilePath, 'utf8');
-    const deviceData = JSON.parse(deviceContent);
-    
-    const parts = [];
-    
-    // Log the structure of deviceData for debugging
-    console.log('Device data structure:', JSON.stringify(deviceData, null, 2));
-    
-    // Extract parts from devices
-    if (deviceData && deviceData.devices) {
-      console.log('Found devices in device.json');
-      Object.entries(deviceData.devices).forEach(([uuid, device]) => {
-        console.log('Processing device with UUID:', uuid);
-        console.log('Device data:', JSON.stringify(device, null, 2));
-        
-        if (device && device.attributes) {
-          const part = {
-            mpn: device.attributes['LCSC Part Name'],
-            manufacturer: device.attributes['Manufacturer'],
-            datasheet: device.attributes['Datasheet'],
-            imageUrl: device.images ? device.images[0] : null
-          };
-          console.log('Created part object:', part);
-          if (part.mpn) {
-            parts.push(part);
-          }
-        }
-      });
-    } else {
-      console.log('No devices found in device.json');
-    }
-    
-    // Get last modified time of LCSC.elibz
-    const elibzPath = path.join(varDir, 'LCSC.elibz');
+
+    // Get last modified time
     const stats = fs.statSync(elibzPath);
-    const lastModified = stats.mtime.toLocaleString();
-    
-    console.log('Found parts:', parts);
-    
-    return { 
-      success: true, 
-      lastModified,
-      parts,
-      message: `Found ${parts.length} parts in device.json (extracted to ${extractPath})`
-    };
+    const currentLastModified = stats.mtimeMs;
+
+    // Return cached results if available and not forced refresh
+    if (!forceRefresh && cachedPartsList && lastModified === currentLastModified) {
+      return { parts: cachedPartsList };
+    }
+
+    // Extract the zip file
+    const zip = new AdmZip(elibzPath);
+    zip.extractAllTo(extractDir, true);
+
+    // Read device.json
+    const deviceJsonPath = path.join(extractDir, 'device.json');
+    if (!fs.existsSync(deviceJsonPath)) {
+      return { error: 'device.json not found in LCSC.elibz' };
+    }
+
+    const deviceData = JSON.parse(fs.readFileSync(deviceJsonPath, 'utf8'));
+    const parts = [];
+
+    // Extract parts information
+    if (deviceData.devices) {
+      for (const [uuid, device] of Object.entries(deviceData.devices)) {
+        if (device.attributes && device.attributes['LCSC Part Name']) {
+          parts.push({
+            uuid: uuid,
+            mpn: device.attributes['LCSC Part Name'],
+            manufacturer: device.attributes['Manufacturer'] || 'Unknown',
+            datasheet: device.attributes['Datasheet'] || null,
+            imageUrl: device.images ? device.images[0] : null
+          });
+        }
+      }
+    }
+
+    // Update cache
+    cachedPartsList = parts;
+    lastModified = currentLastModified;
+
+    return { parts };
   } catch (error) {
-    console.error('Error reading parts from extracted LCSC:', error);
-    return { success: false, message: error.message };
+    console.error('Error reading parts:', error);
+    return { error: error.message };
+  }
+}
+
+async function deletePartsFromElibz(uuids) {
+  const varDir = path.join(__dirname, 'var');
+  const elibzPath = path.join(varDir, 'LCSC.elibz');
+  const extractDir = path.join(varDir, 'LCSC');
+  const deviceJsonPath = path.join(extractDir, 'device.json');
+
+  try {
+    // Extract the zip file if not already extracted
+    if (!fs.existsSync(deviceJsonPath)) {
+      const zip = new AdmZip(elibzPath);
+      zip.extractAllTo(extractDir, true);
+    }
+
+    // Read and parse device.json
+    const deviceData = JSON.parse(fs.readFileSync(deviceJsonPath, 'utf8'));
+
+    // Delete specified parts
+    let deletedCount = 0;
+    for (const uuid of uuids) {
+      if (deviceData.devices && deviceData.devices[uuid]) {
+        delete deviceData.devices[uuid];
+        deletedCount++;
+      }
+    }
+
+    if (deletedCount === 0) {
+      return { success: false, error: 'No parts were found to delete' };
+    }
+
+    // Write updated device.json
+    fs.writeFileSync(deviceJsonPath, JSON.stringify(deviceData, null, 2));
+
+    // Create new zip file
+    const newZip = new AdmZip();
+    
+    // Add all files from the extracted directory
+    const addFilesToZip = (dir, baseDir = '') => {
+      const files = fs.readdirSync(dir);
+      for (const file of files) {
+        const filePath = path.join(dir, file);
+        const relativePath = path.join(baseDir, file);
+        if (fs.statSync(filePath).isDirectory()) {
+          addFilesToZip(filePath, relativePath);
+        } else {
+          newZip.addLocalFile(filePath, baseDir);
+        }
+      }
+    };
+    
+    addFilesToZip(extractDir);
+
+    // Save the new zip file
+    newZip.writeZip(elibzPath);
+
+    // Clear cache to force refresh
+    cachedPartsList = null;
+    lastModified = null;
+
+    return { success: true, deletedCount };
+  } catch (error) {
+    console.error('Error deleting parts:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -189,37 +245,13 @@ ipcMain.handle('search-part', async (event, partNumber) => {
 });
 
 // Handle requests to get the list of parts from LCSC.elibz
-ipcMain.handle('get-parts-list', async (event, forceRefresh = false) => {
-  console.log('Getting parts list from LCSC.elibz');
-  
-  try {
-    // Use cached result if available and not forcing refresh
-    if (cachedPartsList && !forceRefresh) {
-      return cachedPartsList;
-    }
-    
-    const result = await readPartsFromElibz();
-    
-    if (!result.success) {
-      return {
-        error: true,
-        message: result.message
-      };
-    }
-    
-    // Return the raw parts data instead of formatting it
-    return {
-      error: false,
-      lastModified: result.lastModified,
-      parts: result.parts
-    };
-  } catch (error) {
-    console.error('Error getting parts list:', error);
-    return {
-      error: true,
-      message: error.message
-    };
-  }
+ipcMain.handle('get-parts-list', async (event, forceRefresh) => {
+  return await readPartsFromElibz(forceRefresh);
+});
+
+// Handle requests to delete parts from LCSC.elibz
+ipcMain.handle('delete-parts', async (event, uuids) => {
+  return await deletePartsFromElibz(uuids);
 });
 
 // This method will be called when Electron has finished

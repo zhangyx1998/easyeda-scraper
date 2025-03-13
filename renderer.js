@@ -2,6 +2,8 @@
 let electron;
 let ipcRenderer;
 
+let selectedParts = new Set();
+
 // Function to update status with class
 function showStatus(message, type) {
     const status = document.getElementById('status');
@@ -11,77 +13,96 @@ function showStatus(message, type) {
     }
 }
 
-// Function to display parts list
-function displayPartsList(forceRefresh = false) {
-    if (!ipcRenderer) return;
-    
-    const resultDiv = document.getElementById('result');
-    if (!resultDiv) return;
-    
-    showStatus('Loading parts list...', 'info');
-    
-    // Disable buttons during loading
-    const buttons = document.querySelectorAll('button');
-    buttons.forEach(button => button.disabled = true);
-    
-    ipcRenderer.invoke('get-parts-list', forceRefresh)
-        .then(response => {
-            // Clear previous content
-            resultDiv.innerHTML = '';
-            
-            if (response.error) {
-                showStatus(response.message, 'error');
-                return;
-            }
-            
-            if (!response.parts || response.parts.length === 0) {
-                resultDiv.textContent = 'No parts found';
-                showStatus('No parts found', 'info');
-                return;
-            }
-            
-            // Display each part
-            response.parts.forEach(part => {
-                const partElement = document.createElement('div');
-                partElement.className = 'part-item';
-                
-                // Create image element if URL exists
-                if (part.imageUrl) {
-                    const imgElement = document.createElement('img');
-                    imgElement.src = part.imageUrl;
-                    imgElement.alt = part.mpn || 'Part image';
-                    imgElement.style.width = '96px';
-                    imgElement.style.height = '96px';
-                    partElement.appendChild(imgElement);
+function updateDeleteButton() {
+    const deleteButton = document.getElementById('deleteButton');
+    deleteButton.disabled = selectedParts.size === 0;
+}
+
+function showDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'block';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+async function confirmDelete() {
+    try {
+        const response = await ipcRenderer.invoke('delete-parts', Array.from(selectedParts));
+        if (response.success) {
+            closeDeleteModal();
+            selectedParts.clear();
+            updateDeleteButton();
+            await displayPartsList(true);
+        } else {
+            console.error('Failed to delete parts:', response.error);
+            alert('Failed to delete parts: ' + response.error);
+        }
+    } catch (error) {
+        console.error('Error deleting parts:', error);
+        alert('Error deleting parts: ' + error.message);
+    }
+}
+
+async function displayPartsList(forceRefresh = false) {
+    try {
+        const response = await ipcRenderer.invoke('get-parts-list', forceRefresh);
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = '';
+
+        if (response.error) {
+            resultDiv.textContent = `Error: ${response.error}`;
+            return;
+        }
+
+        if (!response.parts || response.parts.length === 0) {
+            resultDiv.textContent = 'No parts found.';
+            return;
+        }
+
+        response.parts.forEach(part => {
+            const partDiv = document.createElement('div');
+            partDiv.className = 'part-item';
+
+            // Add checkbox
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'part-checkbox';
+            checkbox.checked = selectedParts.has(part.uuid);
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    selectedParts.add(part.uuid);
+                } else {
+                    selectedParts.delete(part.uuid);
                 }
-                
-                // Create info element
-                const infoElement = document.createElement('div');
-                infoElement.className = 'part-info';
-                
-                // Add part information
-                const partInfo = [
-                    `Part Number: ${part.mpn || 'Unknown'}`,
-                    `Manufacturer: ${part.manufacturer || 'Unknown'}`,
-                    part.datasheet ? `Datasheet: <a href="${part.datasheet}" target="_blank">View</a>` : ''
-                ].filter(Boolean).join('<br>');
-                
-                infoElement.innerHTML = partInfo;
-                partElement.appendChild(infoElement);
-                
-                resultDiv.appendChild(partElement);
+                updateDeleteButton();
             });
-            
-            showStatus(`Found ${response.parts.length} parts`, 'success');
-        })
-        .catch(error => {
-            console.error('Error getting parts list:', error);
-            showStatus('Error loading parts list: ' + error.message, 'error');
-        })
-        .finally(() => {
-            // Re-enable buttons
-            buttons.forEach(button => button.disabled = false);
+            partDiv.appendChild(checkbox);
+
+            // Add image if available
+            if (part.imageUrl) {
+                const img = document.createElement('img');
+                img.src = part.imageUrl;
+                img.alt = part.mpn;
+                partDiv.appendChild(img);
+            }
+
+            // Add part info
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'part-info';
+            infoDiv.innerHTML = `
+                <strong>Part Number:</strong> ${part.mpn}<br>
+                <strong>Manufacturer:</strong> ${part.manufacturer || 'Unknown'}<br>
+                ${part.datasheet ? `<strong>Datasheet:</strong> <a href="${part.datasheet}" target="_blank">View Datasheet</a>` : ''}
+            `;
+            partDiv.appendChild(infoDiv);
+
+            resultDiv.appendChild(partDiv);
         });
+    } catch (error) {
+        console.error('Error displaying parts:', error);
+        document.getElementById('result').textContent = `Error: ${error.message}`;
+    }
 }
 
 // Initialize Electron modules
@@ -202,4 +223,53 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', setupEventListeners);
 } else {
     setupEventListeners();
-} 
+}
+
+// Event Listeners
+document.getElementById('partNumber').addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+        const partNumber = e.target.value.trim();
+        if (partNumber) {
+            try {
+                const status = document.getElementById('status');
+                status.textContent = 'Processing...';
+                await ipcRenderer.invoke('process-part', partNumber);
+                status.textContent = 'Done!';
+                await displayPartsList(true);
+            } catch (error) {
+                console.error('Error processing part:', error);
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+            }
+        }
+    }
+});
+
+document.getElementById('searchButton').addEventListener('click', async () => {
+    const partNumber = document.getElementById('partNumber').value.trim();
+    if (partNumber) {
+        try {
+            const status = document.getElementById('status');
+            status.textContent = 'Processing...';
+            await ipcRenderer.invoke('process-part', partNumber);
+            status.textContent = 'Done!';
+            await displayPartsList(true);
+        } catch (error) {
+            console.error('Error processing part:', error);
+            document.getElementById('status').textContent = `Error: ${error.message}`;
+        }
+    }
+});
+
+document.getElementById('refreshButton').addEventListener('click', () => {
+    displayPartsList(true);
+});
+
+document.getElementById('deleteButton').addEventListener('click', () => {
+    if (selectedParts.size > 0) {
+        showDeleteModal();
+    }
+});
+
+document.getElementById('debugButton').addEventListener('click', () => {
+    displayPartsList(true);
+}); 
