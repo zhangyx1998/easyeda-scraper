@@ -233,7 +233,7 @@ document.getElementById('partNumber').addEventListener('keypress', async (e) => 
             try {
                 const status = document.getElementById('status');
                 status.textContent = 'Processing...';
-                await ipcRenderer.invoke('process-part', partNumber);
+                await ipcRenderer.invoke('search-part', partNumber);
                 status.textContent = 'Done!';
                 await displayPartsList(true);
             } catch (error) {
@@ -250,7 +250,7 @@ document.getElementById('searchButton').addEventListener('click', async () => {
         try {
             const status = document.getElementById('status');
             status.textContent = 'Processing...';
-            await ipcRenderer.invoke('process-part', partNumber);
+            await ipcRenderer.invoke('search-part', partNumber);
             status.textContent = 'Done!';
             await displayPartsList(true);
         } catch (error) {

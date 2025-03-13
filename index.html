@@ -7,90 +7,245 @@
     <link href="./styles.css" rel="stylesheet">
     <title>EasyEDA Part Scraper</title>
     <style>
+        :root {
+            --primary-color: #2196F3;
+            --danger-color: #dc3545;
+            --success-color: #4CAF50;
+            --warning-color: #ff9800;
+            --background-color: #f5f5f5;
+            --card-background: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px;
-            max-width: 800px;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
             margin: 0 auto;
         }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
         .search-container {
-            margin: 20px 0;
+            background-color: var(--card-background);
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
             display: flex;
-            gap: 10px;
+            gap: 1rem;
+            align-items: center;
         }
-        input[type="text"] {
+
+        .search-input-wrapper {
             flex: 1;
-            padding: 8px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            position: relative;
         }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            font-size: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
         button {
-            padding: 8px 16px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
+
         button:hover {
-            background-color: #45a049;
+            transform: translateY(-1px);
         }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
+
+        #searchButton {
+            background-color: var(--primary-color);
+            color: white;
         }
+
+        #searchButton:hover {
+            background-color: #1976D2;
+        }
+
+        #debugButton {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        #debugButton:hover {
+            background-color: #f57c00;
+        }
+
         #status {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+            font-weight: 500;
         }
+
         .success {
-            background-color: #dff0d8;
-            color: #3c763d;
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid var(--success-color);
         }
+
         .error {
-            background-color: #f2dede;
-            color: #a94442;
+            background-color: #ffebee;
+            color: #c62828;
+            border-left: 4px solid var(--danger-color);
         }
+
         .info {
-            background-color: #d9edf7;
-            color: #31708f;
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border-left: 4px solid var(--primary-color);
         }
-        #result {
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            white-space: pre-wrap;
-            font-family: monospace;
-            max-height: 400px;
-            overflow-y: auto;
-        }
+
         .parts-header {
             display: flex;
             align-items: center;
-            margin-top: 20px;
-            font-weight: bold;
             justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: var(--card-background);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .parts-header-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 1rem;
+            font-size: 1.1rem;
+            font-weight: 500;
         }
+
+        #refreshButton {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+        }
+
         #deleteButton {
-            background-color: #dc3545;
+            background-color: var(--danger-color);
+            color: white;
         }
+
         #deleteButton:hover {
             background-color: #c82333;
         }
-        .part-checkbox {
-            margin-right: 10px;
-            width: 18px;
-            height: 18px;
+
+        #deleteButton:disabled {
+            background-color: #e0e0e0;
+            cursor: not-allowed;
+            transform: none;
         }
+
+        #result {
+            background-color: var(--card-background);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 0;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .part-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.3s ease;
+        }
+
+        .part-item:last-child {
+            border-bottom: none;
+        }
+
+        .part-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .part-checkbox {
+            margin-right: 1rem;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+
+        .part-item img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            margin-right: 2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            background-color: white;
+        }
+
+        .part-info {
+            flex: 1;
+            line-height: 1.8;
+        }
+
+        .part-info strong {
+            color: #555;
+            min-width: 120px;
+            display: inline-block;
+        }
+
+        .part-info a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.3rem 0.8rem;
+            background-color: #e3f2fd;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .part-info a:hover {
+            background-color: #bbdefb;
+            text-decoration: none;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -98,94 +253,121 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             z-index: 1000;
+            animation: fadeIn 0.3s ease;
         }
+
         .modal-content {
             position: relative;
-            background-color: #fefefe;
+            background-color: var(--card-background);
             margin: 15% auto;
-            padding: 20px;
-            border-radius: 4px;
-            width: 80%;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
             max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease;
         }
+
+        .modal-content h2 {
+            margin-bottom: 1rem;
+            color: var(--text-color);
+        }
+
+        .modal-content p {
+            margin-bottom: 1.5rem;
+            color: #666;
+        }
+
         .modal-buttons {
             display: flex;
             justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 1rem;
         }
+
         .modal-buttons button {
-            padding: 6px 12px;
+            padding: 0.8rem 1.5rem;
+            font-weight: 500;
         }
+
         .modal-buttons .cancel {
             background-color: #6c757d;
+            color: white;
         }
+
         .modal-buttons .confirm {
-            background-color: #dc3545;
+            background-color: var(--danger-color);
+            color: white;
         }
-        #debugButton {
-            background-color: #ff9800;
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-        #refreshButton {
-            background-color: #2196F3;
-            margin-left: 10px;
-            padding: 4px 8px;
-            font-size: 14px;
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
-        .part-item {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
             border-radius: 4px;
         }
-        .part-item img {
-            margin-right: 20px;
-            border: 1px solid #eee;
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
             border-radius: 4px;
         }
-        .part-info {
-            flex: 1;
-            line-height: 1.5;
-        }
-        .part-info a {
-            color: #2196F3;
-            text-decoration: none;
-        }
-        .part-info a:hover {
-            text-decoration: underline;
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #666;
         }
     </style>
   </head>
   <body>
-    <h1>EasyEDA Part Scraper</h1>
-    <div class="search-container">
-        <input type="text" id="partNumber" placeholder="Enter part number (e.g., CL21A226MAQNNNE)">
-        <button id="searchButton">Search</button>
-        <button id="debugButton">Debug</button>
-    </div>
-    <div id="status" class="info">Initializing...</div>
-    
-    <div class="parts-header">
-        <div class="parts-header-left">
-            Parts in LCSC.elibz:
-            <button id="refreshButton">Refresh</button>
+    <div class="container">
+        <h1>EasyEDA Part Scraper</h1>
+        
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <input type="text" id="partNumber" placeholder="Enter part number (e.g., C286276)">
+            </div>
+            <button id="searchButton">
+                Search
+            </button>
+            <button id="debugButton">
+                Debug
+            </button>
         </div>
-        <button id="deleteButton" disabled>Delete Selected</button>
-    </div>
-    <pre id="result"></pre>
 
-    <!-- Confirmation Modal -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <h2>Confirm Deletion</h2>
-            <p>Are you sure you want to delete the selected parts? This action cannot be undone.</p>
-            <div class="modal-buttons">
-                <button class="cancel" onclick="closeDeleteModal()">Cancel</button>
-                <button class="confirm" onclick="confirmDelete()">Delete</button>
+        <div id="status" class="info">Initializing...</div>
+        
+        <div class="parts-header">
+            <div class="parts-header-left">
+                Parts in LCSC.elibz
+                <button id="refreshButton">Refresh</button>
+            </div>
+            <button id="deleteButton" disabled>Delete Selected</button>
+        </div>
+
+        <div id="result"></div>
+
+        <!-- Confirmation Modal -->
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <h2>Confirm Deletion</h2>
+                <p>Are you sure you want to delete the selected parts? This action cannot be undone.</p>
+                <div class="modal-buttons">
+                    <button class="cancel" onclick="closeDeleteModal()">Cancel</button>
+                    <button class="confirm" onclick="confirmDelete()">Delete</button>
+                </div>
             </div>
         </div>
     </div>
