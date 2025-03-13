@@ -1,39 +1,36 @@
-# electron-quick-start
+# EasyEDA Part Scraper
 
-**Clone and run for a quick way to see Electron in action.**
+**A tool to scrape and display part information from EasyEDA's LCSC library.**
 
-This is a minimal Electron application based on the [Quick Start Guide](https://electronjs.org/docs/latest/tutorial/quick-start) within the Electron documentation.
+This application is built using Electron and provides a simple interface to view part details such as part number, manufacturer, datasheet, and images.
 
-A basic Electron application needs just these files:
+## Project Structure
 
-- `package.json` - Points to the app's main file and lists its details and dependencies.
-- `main.js` - Starts the app and creates a browser window to render HTML. This is the app's **main process**.
-- `index.html` - A web page to render. This is the app's **renderer process**.
-- `preload.js` - A content script that runs before the renderer process loads.
-
-You can learn more about each of these components in depth within the [Tutorial](https://electronjs.org/docs/latest/tutorial/tutorial-prerequisites).
+- `package.json` - Lists the app's details and dependencies.
+- `main.js` - Starts the app and handles the main process logic.
+- `index.html` - The web page rendered in the app's window.
+- `renderer.js` - Handles the renderer process logic.
 
 ## To Use
 
-To clone and run this repository you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com)) installed on your computer. From your command line:
+To clone and run this repository, you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com)) installed on your computer. From your command line:
 
 ```bash
 # Clone this repository
-git clone https://github.com/electron/electron-quick-start
+git clone <your-repo-url>
 # Go into the repository
-cd electron-quick-start
+cd easyeda-part-scraper
 # Install dependencies
 npm install
 # Run the app
 npm start
 ```
 
-Note: If you're using Linux Bash for Windows, [see this guide](https://www.howtogeek.com/261575/how-to-run-graphical-linux-desktop-applications-from-windows-10s-bash-shell/) or use `node` from the command prompt.
+## Features
 
-## Resources for Learning Electron
-
-- [electronjs.org/docs](https://electronjs.org/docs) - all of Electron's documentation
-- [Electron Fiddle](https://electronjs.org/fiddle) - Electron Fiddle, an app to test small Electron experiments
+- Displays part information from the LCSC library
+- Provides links to datasheets
+- Shows part images
 
 ## License
 

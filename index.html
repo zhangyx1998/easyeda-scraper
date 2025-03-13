@@ -3,17 +3,127 @@
   <head>
     <meta charset="UTF-8">
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https://*.szlcsc.com">
     <link href="./styles.css" rel="stylesheet">
-    <title>Hello World!</title>
+    <title>EasyEDA Part Scraper</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .search-container {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        .info {
+            background-color: #d9edf7;
+            color: #31708f;
+        }
+        #result {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .parts-header {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        #debugButton {
+            background-color: #ff9800;
+        }
+        #refreshButton {
+            background-color: #2196F3;
+            margin-left: 10px;
+            padding: 4px 8px;
+            font-size: 14px;
+        }
+        .part-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .part-item img {
+            margin-right: 20px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+        .part-info {
+            flex: 1;
+            line-height: 1.5;
+        }
+        .part-info a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+        .part-info a:hover {
+            text-decoration: underline;
+        }
+    </style>
   </head>
   <body>
-    <h1>Hello World!</h1>
-    We are using Node.js <span id="node-version"></span>,
-    Chromium <span id="chrome-version"></span>,
-    and Electron <span id="electron-version"></span>.
+    <h1>EasyEDA Part Scraper</h1>
+    <div class="search-container">
+        <input type="text" id="partNumber" placeholder="Enter part number (e.g., CL21A226MAQNNNE)">
+        <button id="searchButton">Search</button>
+        <button id="debugButton">Debug</button>
+    </div>
+    <div id="status" class="info">Initializing...</div>
+    
+    <div class="parts-header">
+        Parts in LCSC.elibz:
+        <button id="refreshButton">Refresh</button>
+    </div>
+    <pre id="result"></pre>
 
-    <!-- You can also require other files to run in this process -->
-    <script src="./renderer.js"></script>
+    <script src="renderer.js"></script>
   </body>
 </html>

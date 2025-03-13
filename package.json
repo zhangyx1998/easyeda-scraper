@@ -1,21 +1,28 @@
 {
-  "name": "electron-quick-start",
+  "name": "easyeda-scraper",
   "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "description": "Scrapper for porting LCSC part to KiCad",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": "https://github.com/electron/electron-quick-start",
+  "repository": {
+    "type": "git",
+    "url": "github.com/zhangyx1998/easyeda-scraper.git"
+  },
   "keywords": [
     "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
+    "LCSC",
+    "KiCad",
+    "EasyEDA"
   ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
+  "author": "Yuxuan Zhang, Haoyuan Xu",
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "archiver": "^7.0.1"
+  },
   "devDependencies": {
     "electron": "^35.0.1"
   }
