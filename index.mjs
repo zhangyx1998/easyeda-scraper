@@ -82,16 +82,54 @@ export async function searchPart(partNumber) {
     )
   );
 
-  const deviceJsonEntry = zip.getEntry("device.json");
+  // Extract the current zip to get the most up-to-date device.json
+  const extractDir = join(varDir, "LCSC");
+  await mkdir(extractDir, { recursive: true }).catch(() => {});
+  
+  // Extract the zip file to access the most recent device.json
+  if (existsSync(zipPath)) {
+    const tempZip = new AdmZip(zipPath);
+    tempZip.extractAllTo(extractDir, true);
+  }
+  
+  const deviceJsonPath = join(extractDir, "device.json");
   let oldData = { devices: {}, symbols: {}, footprints: {} };
 
-  if (deviceJsonEntry) {
-    console.log('Loading existing device.json from zip');
-    const content = deviceJsonEntry.getData().toString('utf8');
-    oldData = JSON.parse(content);
+  if (existsSync(deviceJsonPath)) {
+    try {
+      console.log('Loading device.json from extracted directory');
+      const content = await import('fs').then(fs => 
+        fs.promises.readFile(deviceJsonPath, 'utf8')
+      );
+      oldData = JSON.parse(content);
+    } catch (error) {
+      console.error('Error reading device.json from extracted directory:', error);
+      
+      // Fallback to reading from the zip
+      const deviceJsonEntry = zip.getEntry("device.json");
+      if (deviceJsonEntry) {
+        console.log('Loading existing device.json from zip');
+        const content = deviceJsonEntry.getData().toString('utf8');
+        oldData = JSON.parse(content);
+      }
+    }
+  } else {
+    // Fallback to reading from the zip
+    const deviceJsonEntry = zip.getEntry("device.json");
+    if (deviceJsonEntry) {
+      console.log('Loading existing device.json from zip');
+      const content = deviceJsonEntry.getData().toString('utf8');
+      oldData = JSON.parse(content);
+    }
   }
 
-  oldData.devices = { ...oldData.devices, ...devices };
+  // Only add the new devices, preserving existing structure (including deletions)
+  console.log('Adding new devices to existing data');
+  Object.keys(devices).forEach(uuid => {
+    oldData.devices[uuid] = devices[uuid];
+  });
+
+  // Add symbols and footprints
   oldData.symbols = { ...oldData.symbols, ...symbols };
   oldData.footprints = { ...oldData.footprints, ...footprints };
 
